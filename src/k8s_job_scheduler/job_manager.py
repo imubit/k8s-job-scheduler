@@ -2,6 +2,7 @@ import json
 import logging
 
 from kubernetes import client, config
+from kubernetes.client.rest import ApiException
 
 __author__ = "Meir Tseitlin"
 __copyright__ = "Imubit"
@@ -10,6 +11,8 @@ __license__ = "LGPL-3.0-only"
 log = logging.getLogger(__name__)
 
 config.load_kube_config()
+
+K8S_DEFAULT_NAMESPACE = "py-k8s-job-scheduler"
 
 K8S_STATUS_MAP = {
     "ready": "READY",
@@ -24,26 +27,28 @@ K8S_STATUS_MAP = {
 class JobManager:
     DELETE_PROPAGATION_POLICY = "Foreground"
 
-    def __init__(self, namespace, docker_image, env, cluster_conf=None):
+    def __init__(
+        self, docker_image, env=None, namespace=K8S_DEFAULT_NAMESPACE, cluster_conf=None
+    ):
         self._namespace = namespace
         self._docker_image = docker_image
         self._env = env or {}
 
         # Init Kubernetes
-        self._core_api = client.CoreV1Api(cluster_conf)
-        self._batch_api = client.BatchV1Api(cluster_conf)
+        self._cluster_conf = cluster_conf or config.load_kube_config()
+
+        self._core_api = client.CoreV1Api(self._cluster_conf)
+        self._batch_api = client.BatchV1Api(self._cluster_conf)
 
     def init(self):
         # Create namespace if not exists
 
-        namespaces = self._core_api.list_namespace()
-        all_namespaces = []
-        for ns in namespaces.items:
-            all_namespaces.append(ns.metadata.name)
+        try:
+            self._core_api.read_namespace_status(self._namespace)
+        except ApiException as e:
+            if e.status != 404:
+                raise e
 
-        if self._namespace in all_namespaces:
-            log.info(f"Namespace {self._namespace} already exists. Reusing.")
-        else:
             namespace_metadata = client.V1ObjectMeta(name=self._namespace)
             self._core_api.create_namespace(
                 client.V1Namespace(metadata=namespace_metadata)

@@ -12,9 +12,8 @@ import time
 import psycopg2
 import pytest
 
-from k8s_job_scheduler.job_manager import JobManager
+from k8s_job_scheduler.job_manager import K8S_DEFAULT_NAMESPACE, JobManager
 
-K8S_NAMESPACE = "k8s-job-scheduler"
 DOCKER_IMAGE_PYTHON = "python:3.11.7-slim-bullseye"
 DOCKER_IMAGE_POSTGRES = "postgres:15"
 POSTGRES_USER = "postgres"
@@ -31,7 +30,9 @@ def jobman(request, docker_image=DOCKER_IMAGE_PYTHON, env=None):
         docker_image = request.param.get("docker_image", docker_image)
         env = request.param.get("env", env)
 
-    jobman = JobManager(namespace=K8S_NAMESPACE, docker_image=docker_image, env=env)
+    jobman = JobManager(
+        docker_image=docker_image, env=env, namespace=K8S_DEFAULT_NAMESPACE
+    )
     jobman.init()
 
     # Clean old pods
