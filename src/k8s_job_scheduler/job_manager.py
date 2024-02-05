@@ -179,10 +179,20 @@ class JobManager:
 
         return "succeeded" in status and status["succeeded"] > 0
 
-    def list_scheduled_jobs(self):
+    def list_scheduled_jobs(self, include_details=False):
         ret = self._batch_api.list_namespaced_cron_job(namespace=self._namespace)
 
+        if include_details:
+            return ret.items
+
         return [i.metadata.name for i in ret.items]
+
+    def scheduled_job_status(self, job_name):
+        api_response = self._batch_api.read_namespaced_cron_job_status(
+            job_name, self._namespace
+        )
+
+        return api_response
 
     def create_scheduled_job(self, schedule, cmd, *args, **kwargs):
         job_name = f"job-kjs-{JobManager._k8s_fqn(cmd)}"
