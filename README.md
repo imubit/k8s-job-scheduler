@@ -14,14 +14,12 @@
 
 # k8s-job-scheduler
 
-> Add a short description here!
+A package for managing Kubernetes jobs and cron jobs from Python. It allows running CLI or Python code using native Kubernetes job engine.
 
-A longer description of your project goes here...
+> This package is a continuous effort started by [Roemer Claasen](https://gitlab.com/roemer) in his [kubernetes-job](https://gitlab.com/roemer/kubernetes-job) work.
 
+## Installation
 
-<!-- pyscaffold-notes -->
-
-## Note
-
-This project has been set up using PyScaffold 4.5. For details and usage
-information on PyScaffold see https://pyscaffold.org/.
+```python
+pip install k8s-job-scheduler
+```

@@ -1,11 +1,14 @@
+import datetime as dt
 import json
 import logging
+import socket
 
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
+from .job_func_def import JobFuncDef, JobMeta
+
 __author__ = "Meir Tseitlin"
-__copyright__ = "Imubit"
 __license__ = "LGPL-3.0-only"
 
 log = logging.getLogger(__name__)
@@ -13,6 +16,7 @@ log = logging.getLogger(__name__)
 config.load_kube_config()
 
 K8S_DEFAULT_NAMESPACE = "py-k8s-job-scheduler"
+K8S_ENV_VAR_NAME = "K8S_JOB_FUNC"
 
 K8S_STATUS_MAP = {
     "ready": "READY",
@@ -22,6 +26,15 @@ K8S_STATUS_MAP = {
     "failed": "FAILED",
     "missing": "MISSING",
 }
+
+
+def _k8s_fqn(name):
+    return name.replace("_", "-")
+
+
+def _gen_id(prefix: str, name: str, dt: dt) -> str:
+    """Generate a job id from the name and the given datetime"""
+    return f"kjs-{prefix}-{_k8s_fqn(name)}-{dt.strftime('%Y%m%d%H%M%S%f')}"
 
 
 class JobManager:
@@ -131,24 +144,70 @@ class JobManager:
             else None
         )
 
-    @staticmethod
-    def _k8s_fqn(name):
-        return name.replace("_", "-")
+    def create_instant_job(self, func, cmd="python", *args, **kwargs):
+        dt_scheduled = dt.datetime.utcnow()
 
-    def create_instant_job(self, cmd, *args, **kwargs):
-        job_name = f"job-kjs-{JobManager._k8s_fqn(cmd)}"
-        pod_name = f"pod-kjs-{JobManager._k8s_fqn(cmd)}"
+        job_name = _gen_id("job", cmd, dt_scheduled)
+        pod_name = _gen_id("pod", cmd, dt_scheduled)
+        labels = {"job_name": job_name, "type": "scheduled_func", "cmd": cmd}
 
-        container = self._gen_container_specs(cmd, *args, **kwargs)
+        if "labels" in kwargs:
+            labels.update(kwargs["labels"])
+            del kwargs["labels"]
+
+        # serialize function call
+        job_descriptor = JobFuncDef(
+            func=func,
+            args=args,
+            kwargs=kwargs,
+            meta=JobMeta(job_name, dt_scheduled, socket.gethostname()),
+        )
+
+        container = self._gen_container_specs(
+            cmd, {K8S_ENV_VAR_NAME: job_descriptor.dump()}, *args, **kwargs
+        )
 
         api_response = self._batch_api.create_namespaced_job(
             namespace=self._namespace,
             body=client.V1Job(
                 api_version="batch/v1",
                 kind="Job",
-                metadata=client.V1ObjectMeta(
-                    name=job_name, labels={"job_name": job_name}
+                metadata=client.V1ObjectMeta(name=job_name, labels=labels),
+                spec=client.V1JobSpec(
+                    backoff_limit=0,
+                    template=client.V1JobTemplateSpec(
+                        spec=client.V1PodSpec(
+                            restart_policy="Never", containers=[container]
+                        ),
+                        metadata=client.V1ObjectMeta(
+                            name=pod_name, labels={"pod_name": pod_name}
+                        ),
+                    ),
                 ),
+            ),
+        )
+
+        return api_response.metadata.name
+
+    def create_instant_cli_job(self, cmd, *args, **kwargs):
+        dt_scheduled = dt.datetime.utcnow()
+
+        job_name = _gen_id("cli-job", cmd, dt_scheduled)
+        pod_name = _gen_id("pod", cmd, dt_scheduled)
+        labels = {"job_name": job_name, "type": "scheduled_cli", "cmd": cmd}
+
+        if "labels" in kwargs:
+            labels.update(kwargs["labels"])
+            del kwargs["labels"]
+
+        container = self._gen_container_specs(cmd, {}, *args, **kwargs)
+
+        api_response = self._batch_api.create_namespaced_job(
+            namespace=self._namespace,
+            body=client.V1Job(
+                api_version="batch/v1",
+                kind="Job",
+                metadata=client.V1ObjectMeta(name=job_name, labels=labels),
                 spec=client.V1JobSpec(
                     backoff_limit=0,
                     template=client.V1JobTemplateSpec(
@@ -194,20 +253,24 @@ class JobManager:
 
         return api_response
 
-    def create_scheduled_job(self, schedule, cmd, *args, **kwargs):
-        job_name = f"job-kjs-{JobManager._k8s_fqn(cmd)}"
-        pod_name = f"pod-kjs-{JobManager._k8s_fqn(cmd)}"
+    def create_scheduled_cli_job(self, schedule, cmd, *args, **kwargs):
+        job_name = _gen_id("cron-job", cmd)
+        pod_name = _gen_id("pod", cmd)
 
-        container = self._gen_container_specs(cmd, *args, **kwargs)
+        labels = {"job_name": job_name, "type": "scheduled_cli", "cmd": cmd}
+
+        if "labels" in kwargs:
+            labels.update(kwargs["labels"])
+            del kwargs["labels"]
+
+        container = self._gen_container_specs(cmd, {}, *args, **kwargs)
 
         api_response = self._batch_api.create_namespaced_cron_job(
             namespace=self._namespace,
             body=client.V1CronJob(
                 api_version="batch/v1",
                 kind="CronJob",
-                metadata=client.V1ObjectMeta(
-                    name=job_name, labels={"job_name": job_name}
-                ),
+                metadata=client.V1ObjectMeta(name=job_name, labels=labels),
                 spec=client.V1CronJobSpec(
                     schedule=schedule,
                     job_template=client.V1JobTemplateSpec(
@@ -240,9 +303,15 @@ class JobManager:
 
         return True
 
-    def _gen_container_specs(self, cmd, *args, **kwargs):
+    def _gen_container_specs(self, cmd, system_env, *args, **kwargs):
+        dt_scheduled = dt.datetime.utcnow()
+
         args_arr = [f"{a}" for a in args] + [f"--{k}={v}" for k, v in kwargs.items()]
-        container_name = f"cont-kjs-{JobManager._k8s_fqn(cmd)}"
+        container_name = _gen_id("cont", cmd, dt_scheduled)
+
+        env_var = [client.V1EnvVar(name=k, value=v) for k, v in self._env.items()] + [
+            client.V1EnvVar(name=k, value=v) for k, v in system_env.items()
+        ]
 
         # Create container
         container = client.V1Container(
@@ -251,7 +320,7 @@ class JobManager:
             image_pull_policy="IfNotPresent",  # Always / Never / IfNotPresent
             command=[cmd],
             args=args_arr,
-            env=[client.V1EnvVar(name=k, value=v) for k, v in self._env.items()],
+            env=env_var,
         )
 
         logging.info(

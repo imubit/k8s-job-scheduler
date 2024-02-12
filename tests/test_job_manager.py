@@ -7,8 +7,8 @@ from conftest import DOCKER_IMAGE_POSTGRES, POSTGRES_HOST, POSTGRES_USER
 def test_success(jobman):
     cmd = "python"
 
-    job_name = jobman.create_instant_job(cmd, "--help")
-    assert job_name.startswith(f'job-kjs-{cmd.replace("_", "-")}')
+    job_name = jobman.create_instant_cli_job(cmd, "--help")
+    assert job_name.startswith(f'kjs-cli-job-{cmd.replace("_", "-")}')
     assert jobman.list_jobs() == [job_name]
 
     # assert jobman.job_status(job_name).active == 1
@@ -16,7 +16,7 @@ def test_success(jobman):
     time.sleep(10)
 
     pods = jobman.list_pods(job_name=job_name)
-    assert pods[0].startswith(f'job-kjs-{cmd.replace("_", "-")}')
+    assert pods[0].startswith(f'kjs-cli-job-{cmd.replace("_", "-")}')
 
     assert len(jobman.job_logs(job_name)) > 10
 
@@ -34,8 +34,8 @@ def test_success(jobman):
 def test_failed(jobman):
     cmd = "python"
 
-    job_name = jobman.create_instant_job(cmd, "---h")
-    assert job_name.startswith(f'job-kjs-{cmd.replace("_", "-")}')
+    job_name = jobman.create_instant_cli_job(cmd, "---h")
+    assert job_name.startswith(f'kjs-cli-job-{cmd.replace("_", "-")}')
     assert jobman.list_jobs() == [job_name]
 
     time.sleep(10)
@@ -44,7 +44,7 @@ def test_failed(jobman):
     assert details["reason"] == "BackoffLimitExceeded"
 
     pods = jobman.list_pods(job_name=job_name)
-    assert pods[0].startswith(f'job-kjs-{cmd.replace("_", "-")}')
+    assert pods[0].startswith(f'kjs-cli-job-{cmd.replace("_", "-")}')
 
     assert len(jobman.job_logs(job_name)) > 10
 
@@ -60,8 +60,8 @@ def test_failed(jobman):
 def test_env(jobman):
     cmd = "printenv"
 
-    job_name = jobman.create_instant_job(cmd, "TEST_VAR")
-    assert job_name.startswith(f'job-kjs-{cmd.replace("_", "-")}')
+    job_name = jobman.create_instant_cli_job(cmd, "TEST_VAR")
+    assert job_name.startswith("kjs-cli-job-printenv-")
     assert jobman.list_jobs() == [job_name]
 
     time.sleep(10)
@@ -72,11 +72,29 @@ def test_env(jobman):
     assert jobman.job_logs(job_name).startswith("hi_there")
 
 
+def _add(a, b):
+    result = a + b
+    return result
+
+
+def test_instant_func_job(jobman):
+    job_name = jobman.create_instant_job(func=_add, a=3, b=5)
+    assert job_name.startswith("kjs-job-python-")
+    assert jobman.list_jobs() == [job_name]
+
+    time.sleep(10)
+
+    status, _ = jobman.job_status(job_name)
+
+    print(jobman.job_logs(job_name))
+    # assert status == "SUCCEEDED"
+
+
 def test_scheduled_job(jobman):
     cron = "*/1 * * * *"
     cmd = "printenv"
 
-    job_name = jobman.create_scheduled_job(cron, cmd, "TEST_VAR")
+    job_name = jobman.create_scheduled_cli_job(cron, cmd, "TEST_VAR")
     assert jobman.list_scheduled_jobs() == [job_name]
 
     time.sleep(10)
@@ -99,7 +117,7 @@ def test_scheduled_job(jobman):
 def test_db_access(jobman, psql):
     cmd = "psql"
 
-    job_name = jobman.create_instant_job(
+    job_name = jobman.create_instant_cli_job(
         cmd, username=POSTGRES_USER, host=POSTGRES_HOST
     )
     assert job_name.startswith(f'job-kjs-{cmd.replace("_", "-")}')
