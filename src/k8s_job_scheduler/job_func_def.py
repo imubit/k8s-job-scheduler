@@ -1,8 +1,9 @@
 import base64
 import datetime
 import logging
-import pickle
 import zlib
+
+import dill
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,7 @@ class JobFuncDef:
 
     def dump(self) -> str:
         """Dump the job function definition to a base64 string"""
-        return base64.urlsafe_b64encode(zlib.compress(pickle.dumps(self))).decode()
+        return base64.urlsafe_b64encode(zlib.compress(dill.dumps(self))).decode()
 
     def execute(self):
         """Execute the job function"""
@@ -77,4 +78,4 @@ class JobFuncDef:
     @staticmethod
     def load(s: str) -> "JobFuncDef":
         """Load the job function definition from a base64 string"""
-        return pickle.loads(zlib.decompress(base64.urlsafe_b64decode(s.encode())))
+        return dill.loads(zlib.decompress(base64.urlsafe_b64decode(s.encode())))

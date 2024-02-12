@@ -1,9 +1,10 @@
 import base64
 import logging
 import os
-import pickle
 import sys
 import zlib
+
+import dill
 
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
@@ -21,7 +22,7 @@ def execute():
             )
             sys.exit(-1)
 
-        current_job = pickle.loads(
+        current_job = dill.loads(
             zlib.decompress(base64.urlsafe_b64decode(func_def.encode()))
         )
         return current_job.execute()

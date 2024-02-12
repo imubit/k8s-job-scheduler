@@ -2,6 +2,7 @@ import datetime as dt
 import json
 import logging
 import socket
+import types
 
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
@@ -157,7 +158,8 @@ class JobManager:
 
         # serialize function call
         job_descriptor = JobFuncDef(
-            func=func,
+            # func=func,
+            func=types.FunctionType(func.__code__, {}),
             args=args,
             kwargs=kwargs,
             meta=JobMeta(job_name, dt_scheduled, socket.gethostname()),
@@ -166,6 +168,8 @@ class JobManager:
         container = self._gen_container_specs(
             cmd, {K8S_ENV_VAR_NAME: job_descriptor.dump()}, *args, **kwargs
         )
+
+        print(container)
 
         api_response = self._batch_api.create_namespaced_job(
             namespace=self._namespace,

@@ -74,6 +74,7 @@ def test_env(jobman):
 
 def _add(a, b):
     result = a + b
+    print(result)
     return result
 
 
@@ -86,7 +87,7 @@ def test_instant_func_job(jobman):
 
     status, _ = jobman.job_status(job_name)
 
-    print(jobman.job_logs(job_name))
+    # print(jobman.job_logs(job_name))
     # assert status == "SUCCEEDED"
 
 
