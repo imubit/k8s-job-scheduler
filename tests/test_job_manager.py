@@ -78,16 +78,17 @@ def _add(a, b):
     return result
 
 
-def test_instant_func_job(jobman):
-    job_name = jobman.create_instant_job(func=_add, a=3, b=5)
+def test_instant_python_job(jobman):
+    job_name = jobman.create_instant_python_job(func=_add, a=3, b=5)
     assert job_name.startswith("kjs-job-python-")
     assert jobman.list_jobs() == [job_name]
 
     time.sleep(10)
 
     status, _ = jobman.job_status(job_name)
+    print(status)
 
-    # print(jobman.job_logs(job_name))
+    print(jobman.job_logs(job_name))
     # assert status == "SUCCEEDED"
 
 

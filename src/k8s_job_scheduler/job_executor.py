@@ -10,15 +10,15 @@ logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 logger = logging.getLogger(__name__)
 
-K8S_ENV_VAR_NAME = "K8S_JOB_FUNC"
+JOB_PYTHON_FUNC_ENV_VAR = "JOB_PYTHON_FUNC"
 
 
 def execute():
     try:
-        func_def = os.getenv(K8S_ENV_VAR_NAME)
+        func_def = os.getenv(JOB_PYTHON_FUNC_ENV_VAR)
         if not func_def:
             print(
-                f"Environment var '{K8S_ENV_VAR_NAME}' is not set, nothing to execute."
+                f"Environment var '{JOB_PYTHON_FUNC_ENV_VAR}' is not set, nothing to execute."
             )
             sys.exit(-1)
 

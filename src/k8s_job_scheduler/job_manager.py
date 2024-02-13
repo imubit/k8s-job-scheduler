@@ -1,6 +1,7 @@
 import datetime as dt
 import json
 import logging
+import os
 import socket
 import types
 
@@ -14,10 +15,14 @@ __license__ = "LGPL-3.0-only"
 
 log = logging.getLogger(__name__)
 
+basedir = os.path.abspath(os.path.dirname(__file__))
+
 config.load_kube_config()
 
 K8S_DEFAULT_NAMESPACE = "py-k8s-job-scheduler"
-K8S_ENV_VAR_NAME = "K8S_JOB_FUNC"
+JOB_PYTHON_FUNC_ENV_VAR = "JOB_PYTHON_FUNC"
+JOB_PYTHON_EXECUTOR_ENV_VAR = "JOB_PYTHON_EXEC"
+JOB_PYTHON_EXECUTOR_SCRIPT_PATH = "/".join([basedir, "job_executor.py"])
 
 K8S_STATUS_MAP = {
     "ready": "READY",
@@ -145,7 +150,7 @@ class JobManager:
             else None
         )
 
-    def create_instant_job(self, func, cmd="python", *args, **kwargs):
+    def create_instant_python_job(self, func, cmd="python", *args, **kwargs):
         dt_scheduled = dt.datetime.utcnow()
 
         job_name = _gen_id("job", cmd, dt_scheduled)
@@ -165,11 +170,20 @@ class JobManager:
             meta=JobMeta(job_name, dt_scheduled, socket.gethostname()),
         )
 
-        container = self._gen_container_specs(
-            cmd, {K8S_ENV_VAR_NAME: job_descriptor.dump()}, *args, **kwargs
-        )
+        with open(JOB_PYTHON_EXECUTOR_SCRIPT_PATH, "r") as f:
+            executor_str = f.read()
 
-        print(container)
+        sysenv = {
+            JOB_PYTHON_FUNC_ENV_VAR: job_descriptor.dump(),
+            JOB_PYTHON_EXECUTOR_ENV_VAR: executor_str,
+        }
+
+        container = self._gen_container_specs(
+            "bash",
+            sysenv,
+            "-c",
+            f"pip install dill;printenv {JOB_PYTHON_EXECUTOR_ENV_VAR} > job_executor.py; python job_executor.py",
+        )
 
         api_response = self._batch_api.create_namespaced_job(
             namespace=self._namespace,
@@ -258,8 +272,10 @@ class JobManager:
         return api_response
 
     def create_scheduled_cli_job(self, schedule, cmd, *args, **kwargs):
-        job_name = _gen_id("cron-job", cmd)
-        pod_name = _gen_id("pod", cmd)
+        dt_scheduled = dt.datetime.utcnow()
+
+        job_name = _gen_id("cron-job", cmd, dt_scheduled)
+        pod_name = _gen_id("pod", cmd, dt_scheduled)
 
         labels = {"job_name": job_name, "type": "scheduled_cli", "cmd": cmd}
 
