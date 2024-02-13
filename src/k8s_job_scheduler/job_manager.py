@@ -1,14 +1,15 @@
-import datetime as dt
+import base64
+import datetime
 import json
 import logging
 import os
 import socket
 import types
+import zlib
 
+import dill
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
-
-from .job_func_def import JobFuncDef, JobMeta
 
 __author__ = "Meir Tseitlin"
 __license__ = "LGPL-3.0-only"
@@ -38,7 +39,7 @@ def _k8s_fqn(name):
     return name.replace("_", "-")
 
 
-def _gen_id(prefix: str, name: str, dt: dt) -> str:
+def _gen_id(prefix: str, name: str, dt: datetime) -> str:
     """Generate a job id from the name and the given datetime"""
     return f"kjs-{prefix}-{_k8s_fqn(name)}-{dt.strftime('%Y%m%d%H%M%S%f')}"
 
@@ -118,6 +119,8 @@ class JobManager:
 
         if api_response.status.ready:
             return K8S_STATUS_MAP["ready"], None
+        elif api_response.status.active:
+            return K8S_STATUS_MAP["active"], None
         elif api_response.status.terminating:
             return K8S_STATUS_MAP["terminating"], None
         elif api_response.status.succeeded:
@@ -151,7 +154,7 @@ class JobManager:
         )
 
     def create_instant_python_job(self, func, cmd="python", *args, **kwargs):
-        dt_scheduled = dt.datetime.utcnow()
+        dt_scheduled = datetime.datetime.utcnow()
 
         job_name = _gen_id("job", cmd, dt_scheduled)
         pod_name = _gen_id("pod", cmd, dt_scheduled)
@@ -161,20 +164,24 @@ class JobManager:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
 
-        # serialize function call
-        job_descriptor = JobFuncDef(
-            # func=func,
-            func=types.FunctionType(func.__code__, {}),
-            args=args,
-            kwargs=kwargs,
-            meta=JobMeta(job_name, dt_scheduled, socket.gethostname()),
-        )
+        job_descriptor = {
+            "func": types.FunctionType(func.__code__, {}),
+            "args": args,
+            "kwargs": kwargs,
+            "name": job_name,
+            "dt_scheduled": dt_scheduled,
+            "host": str(socket.gethostname()),
+        }
 
         with open(JOB_PYTHON_EXECUTOR_SCRIPT_PATH, "r") as f:
             executor_str = f.read()
 
+        pcl = base64.urlsafe_b64encode(
+            zlib.compress(dill.dumps(job_descriptor))
+        ).decode()
+
         sysenv = {
-            JOB_PYTHON_FUNC_ENV_VAR: job_descriptor.dump(),
+            JOB_PYTHON_FUNC_ENV_VAR: pcl,
             JOB_PYTHON_EXECUTOR_ENV_VAR: executor_str,
         }
 
@@ -182,7 +189,7 @@ class JobManager:
             "bash",
             sysenv,
             "-c",
-            f"pip install dill;printenv {JOB_PYTHON_EXECUTOR_ENV_VAR} > job_executor.py; python job_executor.py",
+            f"pip install dill; printenv {JOB_PYTHON_EXECUTOR_ENV_VAR} > job_executor.py; {cmd} job_executor.py",
         )
 
         api_response = self._batch_api.create_namespaced_job(
@@ -208,7 +215,7 @@ class JobManager:
         return api_response.metadata.name
 
     def create_instant_cli_job(self, cmd, *args, **kwargs):
-        dt_scheduled = dt.datetime.utcnow()
+        dt_scheduled = datetime.datetime.utcnow()
 
         job_name = _gen_id("cli-job", cmd, dt_scheduled)
         pod_name = _gen_id("pod", cmd, dt_scheduled)
@@ -272,7 +279,7 @@ class JobManager:
         return api_response
 
     def create_scheduled_cli_job(self, schedule, cmd, *args, **kwargs):
-        dt_scheduled = dt.datetime.utcnow()
+        dt_scheduled = datetime.datetime.utcnow()
 
         job_name = _gen_id("cron-job", cmd, dt_scheduled)
         pod_name = _gen_id("pod", cmd, dt_scheduled)
@@ -324,7 +331,7 @@ class JobManager:
         return True
 
     def _gen_container_specs(self, cmd, system_env, *args, **kwargs):
-        dt_scheduled = dt.datetime.utcnow()
+        dt_scheduled = datetime.datetime.utcnow()
 
         args_arr = [f"{a}" for a in args] + [f"--{k}={v}" for k, v in kwargs.items()]
         container_name = _gen_id("cont", cmd, dt_scheduled)

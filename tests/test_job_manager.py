@@ -72,14 +72,14 @@ def test_env(jobman):
     assert jobman.job_logs(job_name).startswith("hi_there")
 
 
-def _add(a, b):
+def _func_add(a, b):
     result = a + b
     print(result)
     return result
 
 
 def test_instant_python_job(jobman):
-    job_name = jobman.create_instant_python_job(func=_add, a=3, b=5)
+    job_name = jobman.create_instant_python_job(func=_func_add, a=3, b=5)
     assert job_name.startswith("kjs-job-python-")
     assert jobman.list_jobs() == [job_name]
 
@@ -89,7 +89,9 @@ def test_instant_python_job(jobman):
     print(status)
 
     print(jobman.job_logs(job_name))
-    # assert status == "SUCCEEDED"
+    assert status == "SUCCEEDED"
+
+    assert jobman.job_logs(job_name).endswith("8\n")
 
 
 def test_scheduled_job(jobman):

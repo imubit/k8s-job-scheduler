@@ -14,7 +14,7 @@ import pytest
 
 from k8s_job_scheduler.job_manager import K8S_DEFAULT_NAMESPACE, JobManager
 
-DOCKER_IMAGE_PYTHON = "python:3.11.7-slim-bullseye"
+DOCKER_IMAGE_PYTHON = "python:3.11.1-slim-bullseye"
 DOCKER_IMAGE_POSTGRES = "postgres:15"
 POSTGRES_USER = "postgres"
 POSTGRES_PASS = "q1234567"
