@@ -16,8 +16,6 @@
 
 A package for managing Kubernetes jobs and cron jobs from Python. It allows running CLI or Python code using native Kubernetes job engine.
 
-> This package is a continuous effort started by [Roemer Claasen](https://gitlab.com/roemer) in his [kubernetes-job](https://gitlab.com/roemer/kubernetes-job) work.
-
 ## Installation
 
 ```python

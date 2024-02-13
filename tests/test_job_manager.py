@@ -10,7 +10,8 @@ def test_success(jobman):
     assert job_name.startswith(f'kjs-cli-job-{cmd.replace("_", "-")}')
     assert jobman.list_jobs() == [job_name]
 
-    # assert jobman.job_status(job_name).active == 1
+    status, details = jobman.job_status(job_name)
+    assert status == "ACTIVE"
 
     time.sleep(10)
 
