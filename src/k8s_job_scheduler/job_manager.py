@@ -153,7 +153,9 @@ class JobManager:
             else None
         )
 
-    def create_instant_python_job(self, func, cmd="python", *args, **kwargs):
+    def create_instant_python_job(
+        self, func, cmd="python", dynamic_dill_install=True, *args, **kwargs
+    ):
         dt_scheduled = datetime.datetime.utcnow()
 
         job_name = _gen_id("job", cmd, dt_scheduled)
@@ -189,7 +191,8 @@ class JobManager:
             "bash",
             sysenv,
             "-c",
-            f"pip install dill; printenv {JOB_PYTHON_EXECUTOR_ENV_VAR} > executor.py; {cmd} executor.py",
+            f"{'pip install dill; ' if dynamic_dill_install else ''}"
+            f"printenv {JOB_PYTHON_EXECUTOR_ENV_VAR} > executor.py; {cmd} executor.py",
         )
 
         api_response = self._batch_api.create_namespaced_job(
