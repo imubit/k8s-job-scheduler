@@ -9,19 +9,11 @@
 
 import time
 
-import psycopg2
 import pytest
 
 from k8s_job_scheduler.job_manager import K8S_DEFAULT_NAMESPACE, JobManager
 
 DOCKER_IMAGE_PYTHON = "python:3.11.1-slim-bullseye"
-DOCKER_IMAGE_POSTGRES = "postgres:15"
-POSTGRES_USER = "postgres"
-POSTGRES_PASS = "q1234567"
-POSTGRES_HOST = "postgres_db"
-POSTGRES_URI = (
-    f"postgresql://{POSTGRES_USER}:{POSTGRES_PASS}@{POSTGRES_HOST}:5432/postgres"
-)
 
 
 @pytest.fixture
@@ -50,26 +42,3 @@ def jobman(request, docker_image=DOCKER_IMAGE_PYTHON, env=None):
     time.sleep(0.3)
 
     return jobman
-
-
-@pytest.fixture
-def psql():
-    conn = psycopg2.connect(dsn=POSTGRES_URI)
-    conn.autocommit = True
-
-    # Drop all tables
-    with conn.cursor() as curs:
-        curs.execute(
-            """DO $$ DECLARE
-                r RECORD;
-            BEGIN
-                -- if the schema you operate on is not "current", you will want to
-                -- replace current_schema() in query with 'schematodeletetablesfrom'
-                -- *and* update the generate 'DROP...' accordingly.
-                FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema()) LOOP
-                    EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
-                END LOOP;
-            END $$;"""
-        )
-
-    return conn
