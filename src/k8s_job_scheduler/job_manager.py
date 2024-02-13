@@ -23,7 +23,7 @@ config.load_kube_config()
 K8S_DEFAULT_NAMESPACE = "py-k8s-job-scheduler"
 JOB_PYTHON_FUNC_ENV_VAR = "JOB_PYTHON_FUNC"
 JOB_PYTHON_EXECUTOR_ENV_VAR = "JOB_PYTHON_EXEC"
-JOB_PYTHON_EXECUTOR_SCRIPT_PATH = "/".join([basedir, "job_executor.py"])
+JOB_PYTHON_EXECUTOR_SCRIPT_PATH = "/".join([basedir, "python_executor.py"])
 
 K8S_STATUS_MAP = {
     "ready": "READY",
@@ -189,7 +189,7 @@ class JobManager:
             "bash",
             sysenv,
             "-c",
-            f"pip install dill; printenv {JOB_PYTHON_EXECUTOR_ENV_VAR} > job_executor.py; {cmd} job_executor.py",
+            f"pip install dill; printenv {JOB_PYTHON_EXECUTOR_ENV_VAR} > executor.py; {cmd} executor.py",
         )
 
         api_response = self._batch_api.create_namespaced_job(

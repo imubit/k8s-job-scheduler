@@ -75,7 +75,7 @@ def test_env(jobman):
 def _func_add(a, b):
     result = a + b
     print(result)
-    return result
+    return 0
 
 
 def test_instant_python_job(jobman):
@@ -86,9 +86,6 @@ def test_instant_python_job(jobman):
     time.sleep(10)
 
     status, _ = jobman.job_status(job_name)
-    print(status)
-
-    print(jobman.job_logs(job_name))
     assert status == "SUCCEEDED"
 
     assert jobman.job_logs(job_name).endswith("8\n")
