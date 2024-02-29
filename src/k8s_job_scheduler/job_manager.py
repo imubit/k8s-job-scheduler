@@ -107,10 +107,32 @@ class JobManager:
 
         return api_response
 
-    def list_jobs(self):
+    def list_jobs(self, include_details=False):
         ret = self._batch_api.list_namespaced_job(namespace=self._namespace)
 
+        if include_details:
+            return ret.items
+
         return [i.metadata.name for i in ret.items]
+
+    @staticmethod
+    def parse_status(api_response):
+        if api_response.status.ready:
+            return K8S_STATUS_MAP["ready"]
+        elif api_response.status.active:
+            return K8S_STATUS_MAP["active"]
+        elif api_response.status.terminating:
+            return K8S_STATUS_MAP["terminating"]
+        elif api_response.status.succeeded:
+            return K8S_STATUS_MAP["succeeded"]
+        elif api_response.status.failed:
+            return K8S_STATUS_MAP["failed"]
+        else:
+            print(api_response.status)
+            return K8S_STATUS_MAP["missing"]
+
+    def read_job_status(self, job_name):
+        return self._batch_api.read_namespaced_job_status(job_name, self._namespace)
 
     def job_status(self, job_name):
         api_response = self._batch_api.read_namespaced_job_status(
@@ -160,7 +182,7 @@ class JobManager:
 
         job_name = _gen_id("job", cmd, dt_scheduled)
         pod_name = _gen_id("pod", cmd, dt_scheduled)
-        labels = {"job_name": job_name, "type": "scheduled_func", "cmd": cmd}
+        labels = {"job_name": job_name, "type": "instant_func", "cmd": cmd}
 
         if "labels" in kwargs:
             labels.update(kwargs["labels"])
