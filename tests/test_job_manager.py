@@ -7,7 +7,7 @@ def test_success(jobman):
     cmd = "python"
 
     job_name = jobman.create_instant_cli_job(cmd, "--help")
-    assert job_name.startswith(f'kjs-cli-job-{cmd.replace("_", "-")}')
+    assert job_name.startswith(f'kjs-inst-cli-job-{cmd.replace("_", "-")}')
     assert jobman.list_jobs() == [job_name]
 
     status, details = jobman.job_status(job_name)
@@ -16,7 +16,7 @@ def test_success(jobman):
     time.sleep(10)
 
     pods = jobman.list_pods(job_name=job_name)
-    assert pods[0].startswith(f'kjs-cli-job-{cmd.replace("_", "-")}')
+    assert pods[0].startswith(f'kjs-inst-cli-job-{cmd.replace("_", "-")}')
 
     assert len(jobman.job_logs(job_name)) > 10
 
@@ -35,7 +35,7 @@ def test_failed(jobman):
     cmd = "python"
 
     job_name = jobman.create_instant_cli_job(cmd, "---h")
-    assert job_name.startswith(f'kjs-cli-job-{cmd.replace("_", "-")}')
+    assert job_name.startswith(f'kjs-inst-cli-job-{cmd.replace("_", "-")}')
     assert jobman.list_jobs() == [job_name]
 
     time.sleep(10)
@@ -44,7 +44,7 @@ def test_failed(jobman):
     assert details["reason"] == "BackoffLimitExceeded"
 
     pods = jobman.list_pods(job_name=job_name)
-    assert pods[0].startswith(f'kjs-cli-job-{cmd.replace("_", "-")}')
+    assert pods[0].startswith(f'kjs-inst-cli-job-{cmd.replace("_", "-")}')
 
     assert len(jobman.job_logs(job_name)) > 10
 
@@ -61,7 +61,7 @@ def test_env(jobman):
     cmd = "printenv"
 
     job_name = jobman.create_instant_cli_job(cmd, "TEST_VAR")
-    assert job_name.startswith("kjs-cli-job-printenv-")
+    assert job_name.startswith("kjs-inst-cli-job-printenv-")
     assert jobman.list_jobs() == [job_name]
 
     time.sleep(10)
@@ -80,7 +80,7 @@ def _func_add(a, b):
 
 def test_instant_python_job(jobman):
     job_name = jobman.create_instant_python_job(func=_func_add, a=3, b=5)
-    assert job_name.startswith("kjs-job-python-")
+    assert job_name.startswith("kjs-inst-python-job-")
     assert jobman.list_jobs() == [job_name]
 
     time.sleep(10)
