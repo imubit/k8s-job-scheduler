@@ -229,9 +229,7 @@ class JobManager:
                         spec=client.V1PodSpec(
                             restart_policy="Never", containers=[container]
                         ),
-                        metadata=client.V1ObjectMeta(
-                            name=pod_name, labels={"pod_name": pod_name}
-                        ),
+                        metadata=client.V1ObjectMeta(name=pod_name, labels=labels),
                     ),
                 ),
             ),
@@ -244,7 +242,7 @@ class JobManager:
 
         job_name = _gen_id("inst-job-cli", cmd, dt_scheduled)
         pod_name = _gen_id("pod", cmd, dt_scheduled)
-        labels = {"job_name": job_name, "type": "scheduled_cli", "cmd": cmd}
+        labels = {"job_name": job_name, "type": "instant_cli", "cmd": cmd}
 
         if "labels" in kwargs:
             labels.update(kwargs["labels"])
@@ -264,9 +262,7 @@ class JobManager:
                         spec=client.V1PodSpec(
                             restart_policy="Never", containers=[container]
                         ),
-                        metadata=client.V1ObjectMeta(
-                            name=pod_name, labels={"pod_name": pod_name}
-                        ),
+                        metadata=client.V1ObjectMeta(name=pod_name, labels=labels),
                     ),
                 ),
             ),
@@ -333,9 +329,7 @@ class JobManager:
                                 ),
                             ),
                         ),
-                        metadata=client.V1ObjectMeta(
-                            name=pod_name, labels={"pod_name": pod_name}
-                        ),
+                        metadata=client.V1ObjectMeta(name=pod_name, labels=labels),
                     ),
                 ),
             ),
