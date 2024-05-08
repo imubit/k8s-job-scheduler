@@ -180,7 +180,7 @@ class JobManager:
     ):
         dt_scheduled = datetime.datetime.utcnow()
 
-        job_name = _gen_id("inst-python-job", cmd, dt_scheduled)
+        job_name = _gen_id("inst-job", cmd, dt_scheduled)
         pod_name = _gen_id("pod", cmd, dt_scheduled)
         labels = {"job_name": job_name, "type": "instant_func", "cmd": cmd}
 
@@ -242,7 +242,7 @@ class JobManager:
     def create_instant_cli_job(self, cmd, *args, **kwargs):
         dt_scheduled = datetime.datetime.utcnow()
 
-        job_name = _gen_id("inst-cli-job", cmd, dt_scheduled)
+        job_name = _gen_id("inst-job-cli", cmd, dt_scheduled)
         pod_name = _gen_id("pod", cmd, dt_scheduled)
         labels = {"job_name": job_name, "type": "scheduled_cli", "cmd": cmd}
 
