@@ -163,12 +163,40 @@ class JobManager:
         # Get pods
         pods = self.list_pods(job_name=job_name)
 
-        all_logs = [
-            self._core_api.read_namespaced_pod_log(pod, self._namespace) for pod in pods
+        all_status = [
+            self._core_api.read_namespaced_pod_status(pod, self._namespace)
+            for pod in pods
         ]
 
+        # Check status before pulling logs
+        active_pods = [
+            pod.metadata.name for pod in all_status if pod.status.phase == "active"
+        ]
+        inactive_pods = {
+            pod.metadata.name: pod for pod in all_status if pod.status.phase != "active"
+        }
+
+        inactive_statuses = {
+            pod: (
+                f"<b>Pod {pod} is inactive.</b> <br/> "
+                f"<b>Phase</b>: {inactive_pods[pod].status.phase} <br/> "
+                f'<b>Container state</b>: {inactive_pods[pod].status.container_statuses[0].state if inactive_pods[pod].status.container_statuses else "N/A"} <br/>'  # noqa: E501
+                f"<b>Conditions</b>: {inactive_pods[pod].status.conditions}"
+            )
+            for pod in inactive_pods
+        }
+
+        all_logs = {
+            pod: self._core_api.read_namespaced_pod_log_with_http_info(
+                pod, self._namespace
+            )
+            for pod in active_pods
+        }
+
+        all_logs.update(inactive_statuses)
+
         return (
-            all_logs[0]
+            next(iter(all_logs.values()))
             if len(all_logs) == 1
             else all_logs
             if len(all_logs) > 1
