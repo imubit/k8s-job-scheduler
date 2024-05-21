@@ -169,28 +169,32 @@ class JobManager:
         ]
 
         # Check status before pulling logs
-        active_pods = [
-            pod.metadata.name for pod in all_status if pod.status.phase == "active"
+        pods_with_logs = [
+            pod.metadata.name
+            for pod in all_status
+            if pod.status.phase in ["active", "Succeeded", "Running"]
         ]
-        inactive_pods = {
-            pod.metadata.name: pod for pod in all_status if pod.status.phase != "active"
+        pods_with_no_log = {
+            pod.metadata.name: pod
+            for pod in all_status
+            if pod.status.phase not in ["active", "Succeeded", "Running"]
         }
 
         inactive_statuses = {
             pod: (
-                f"<b>Pod {pod} is inactive.</b> <br/> "
-                f"<b>Phase</b>: {inactive_pods[pod].status.phase} <br/> "
-                f'<b>Container state</b>: {inactive_pods[pod].status.container_statuses[0].state if inactive_pods[pod].status.container_statuses else "N/A"} <br/>'  # noqa: E501
-                f"<b>Conditions</b>: {inactive_pods[pod].status.conditions}"
+                f"<b>Pod {pod} has no logs.</b> <br/> "
+                f"<b>Phase</b>: {pods_with_no_log[pod].status.phase} <br/> "
+                f'<b>Container state</b>: {pods_with_no_log[pod].status.container_statuses[0].state if pods_with_no_log[pod].status.container_statuses else "N/A"} <br/>'  # noqa: E501
+                f"<b>Conditions</b>: {pods_with_no_log[pod].status.conditions}"
             )
-            for pod in inactive_pods
+            for pod in pods_with_no_log
         }
 
         all_logs = {
             pod: self._core_api.read_namespaced_pod_log_with_http_info(
                 pod, self._namespace
-            )
-            for pod in active_pods
+            )[0].replace("\\n", "<br/>")
+            for pod in pods_with_logs
         }
 
         all_logs.update(inactive_statuses)
