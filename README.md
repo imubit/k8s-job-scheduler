@@ -14,14 +14,33 @@
 
 # k8s-job-scheduler
 
-> Add a short description here!
+A package for managing Kubernetes jobs and cron jobs from Python. It allows running CLI scripts and Python function within native Kubernetes job engine.
 
-A longer description of your project goes here...
+## Installation
+
+```python
+pip install k8s-job-scheduler
+```
+
+## Getting Started
+
+```commandline
+from k8s_job_scheduler import JobManager
+
+def add(a, b):
+    return a + b
+
+manager = JobManager(docker_image="python:3.11.1-slim-bullseye")
+job = manager.create_job(add, 1, 2)
+
+```
+
+This example will create a Kubernetes job and run the function `add` with arguments 1 and 2 inside Python Docker container.
 
 
-<!-- pyscaffold-notes -->
+## Other Prerequisites
 
-## Note
+### Executing Python functions withing Kubernetes containers
 
-This project has been set up using PyScaffold 4.5. For details and usage
-information on PyScaffold see https://pyscaffold.org/.
+* Docker images should include Python interpreter and all the dependencies required to execute the function.
+* `dill` package is used to send the execution function and it's arguments when Docker container is created. If you wish to use standard Python Docker images or custom images which does not have `dill` package preinstalled, it is possible to specify `dynamic_dill_install=True` when calling `create_instant_python_job`. In this case `dill` will be dynamically installed before running the code.
