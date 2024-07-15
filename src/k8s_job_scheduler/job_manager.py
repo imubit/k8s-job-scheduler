@@ -163,6 +163,8 @@ class JobManager:
         # Get pods
         pods = self.list_pods(job_name=job_name)
 
+        print(pods)
+
         all_status = [
             self._core_api.read_namespaced_pod_status(pod, self._namespace)
             for pod in pods
@@ -172,12 +174,12 @@ class JobManager:
         pods_with_logs = [
             pod.metadata.name
             for pod in all_status
-            if pod.status.phase in ["active", "Succeeded", "Running"]
+            if pod.status.phase in ["active", "Succeeded", "Running", "Failed"]
         ]
         pods_with_no_log = {
             pod.metadata.name: pod
             for pod in all_status
-            if pod.status.phase not in ["active", "Succeeded", "Running"]
+            if pod.status.phase not in ["active", "Succeeded", "Running", "Failed"]
         }
 
         inactive_statuses = {
