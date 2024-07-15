@@ -31,6 +31,8 @@ def execute():
             f"at {current_job['dt_scheduled'].isoformat()} ==="
         )
         logger.debug(f"Job func: {current_job['func'].__name__}")
+        logger.debug(f" Args: {current_job['args']}")
+        logger.debug(f" Kwargs: {current_job['kwargs']}")
 
         return current_job["func"](*current_job["args"], **current_job["kwargs"])
 
