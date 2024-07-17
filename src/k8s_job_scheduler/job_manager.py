@@ -107,8 +107,15 @@ class JobManager:
 
         return api_response
 
-    def list_jobs(self, include_details=False):
-        ret = self._batch_api.list_namespaced_job(namespace=self._namespace)
+    def list_jobs(self, include_details=False, filter_labels=None):
+        if isinstance(filter_labels, dict):
+            filter_labels = ",".join(
+                [f"{l}={filter_labels[l]}" for l in filter_labels]  # noqa: E741
+            )
+
+        ret = self._batch_api.list_namespaced_job(
+            namespace=self._namespace, label_selector=filter_labels
+        )
 
         if include_details:
             return ret.items
@@ -316,8 +323,15 @@ class JobManager:
 
         return "succeeded" in status and status["succeeded"] > 0
 
-    def list_scheduled_jobs(self, include_details=False):
-        ret = self._batch_api.list_namespaced_cron_job(namespace=self._namespace)
+    def list_scheduled_jobs(self, include_details=False, filter_labels=None):
+        if isinstance(filter_labels, dict):
+            filter_labels = ",".join(
+                [f"{l}={filter_labels[l]}" for l in filter_labels]  # noqa: E741
+            )
+
+        ret = self._batch_api.list_namespaced_cron_job(
+            namespace=self._namespace, label_selector=filter_labels
+        )
 
         if include_details:
             return ret.items
