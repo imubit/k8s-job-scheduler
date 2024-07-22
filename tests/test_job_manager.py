@@ -6,9 +6,19 @@ import pytest
 def test_success(jobman):
     cmd = "python"
 
-    job_name = jobman.create_instant_cli_job(cmd, "--help")
+    job_name = jobman.create_instant_cli_job(
+        cmd, "--help", labels={"selector": "a", "namespace": "abc"}
+    )
     assert job_name.startswith(f'kjs-inst-job-cli-{cmd.replace("_", "-")}')
     assert jobman.list_jobs() == [job_name]
+    assert jobman.list_jobs(filter_labels="selector=a") == [job_name]
+    assert jobman.list_jobs(filter_labels="selector=b") == []
+    assert jobman.list_jobs(filter_labels="selector=a,namespace=abc") == [job_name]
+    assert jobman.list_jobs(filter_labels={"selector": "a"}) == [job_name]
+    assert jobman.list_jobs(filter_labels={"selector": "b"}) == []
+    assert jobman.list_jobs(filter_labels={"selector": "a", "namespace": "abc"}) == [
+        job_name
+    ]
 
     status, details = jobman.job_status(job_name)
     assert status == "ACTIVE"
@@ -95,8 +105,20 @@ def test_scheduled_job(jobman):
     cron = "*/1 * * * *"
     cmd = "printenv"
 
-    job_name = jobman.create_scheduled_cli_job(cron, cmd, "TEST_VAR")
+    job_name = jobman.create_scheduled_cli_job(
+        cron, cmd, "TEST_VAR", labels={"selector": "a", "namespace": "abc"}
+    )
     assert jobman.list_scheduled_jobs() == [job_name]
+    assert jobman.list_scheduled_jobs(filter_labels="selector=a") == [job_name]
+    assert jobman.list_scheduled_jobs(filter_labels="selector=b") == []
+    assert jobman.list_scheduled_jobs(filter_labels="selector=a,namespace=abc") == [
+        job_name
+    ]
+    assert jobman.list_scheduled_jobs(filter_labels={"selector": "a"}) == [job_name]
+    assert jobman.list_scheduled_jobs(filter_labels={"selector": "b"}) == []
+    assert jobman.list_scheduled_jobs(
+        filter_labels={"selector": "a", "namespace": "abc"}
+    ) == [job_name]
 
     time.sleep(10)
 
