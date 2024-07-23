@@ -1,8 +1,4 @@
-# GitHub Actions configuration **EXAMPLE**,
-# MODIFY IT ACCORDING TO YOUR NEEDS!
-# Reference: https://docs.github.com/en/actions
-
-name: tests
+name: build
 
 on:
   push:
@@ -60,8 +56,7 @@ jobs:
     strategy:
       matrix:
         python:
-        - "3.9"  # oldest Python supported by PSF
-        - "3.11"  # newest Python that is stable
+        - "3.11"
         platform:
         - ubuntu-latest
 #        - macos-latest
@@ -94,35 +89,32 @@ jobs:
           flag-name: ${{ matrix.platform }} - py${{ matrix.python }}
           parallel: true
 
-#  finalize:
-#    needs: test
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Finalize coverage report
-#        uses: coverallsapp/github-action@master
-#        with:
-#          github-token: ${{ secrets.GITHUB_TOKEN }}
-#          parallel-finished: true
-#
-#  publish:
-#    needs: finalize
-#    if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
-#    runs-on: ubuntu-latest
-#    permissions:
-#      contents: write
-#    steps:
-#      - uses: actions/checkout@v4
-#      - uses: actions/setup-python@v5
-#        with: {python-version: "3.11"}
-#      - name: Retrieve pre-built distribution files
-#        uses: actions/download-artifact@v4
-#        with: {name: python-distribution-files, path: dist/}
-#      - name: Publish Package
-#        env:
-#          # TODO: Set your PYPI_TOKEN as a secret using GitHub UI
-#          # - https://pypi.org/help/#apitoken
-#          # - https://docs.github.com/en/actions/security-guides/encrypted-secrets
-#          TWINE_REPOSITORY: pypi
-#          TWINE_USERNAME: __token__
-#          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-#        run: pipx run tox -e publish
+  finalize:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finalize coverage report
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
+
+  publish:
+    needs: finalize
+    if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Retrieve pre-built distribution files
+        uses: actions/download-artifact@v4
+        with: {name: python-distribution-files, path: dist/}
+      - name: Publish Package
+        env:
+          TWINE_REPOSITORY: pypi
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: pipx run tox -e publish

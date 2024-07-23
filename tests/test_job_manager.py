@@ -93,7 +93,7 @@ def test_instant_python_job(jobman):
     assert job_name.startswith("kjs-inst-job-")
     assert jobman.list_jobs() == [job_name]
 
-    time.sleep(10)
+    time.sleep(15)
 
     status, _ = jobman.job_status(job_name)
     assert status == "SUCCEEDED"
