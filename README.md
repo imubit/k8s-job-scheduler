@@ -11,10 +11,14 @@
 -->
 
 [![Project generated with PyScaffold](https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold)](https://pyscaffold.org/)
+[![Coveralls](https://img.shields.io/coveralls/github/imubit/k8s-job-scheduler/main.svg)](https://coveralls.io/r/imubit/k8s-job-scheduler)
+[![PyPI-Server](https://img.shields.io/pypi/v/k8s-job-scheduler.svg)](https://pypi.org/project/k8s-job-scheduler/)
+
 
 # k8s-job-scheduler
 
-A package for managing Kubernetes jobs and cron jobs from Python. It allows running CLI scripts and Python function within native Kubernetes job engine.
+A package for managing Kubernetes jobs and cron jobs from Python. It allows running CLI scripts and Python functions within native Kubernetes job engine.
+No need to package separate Docker images with functions to be executed - the package can remotely "inject" the Python function using `dill` into publicly available Docker images.
 
 ## Installation
 
