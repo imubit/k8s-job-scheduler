@@ -18,8 +18,6 @@ log = logging.getLogger(__name__)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-config.load_kube_config()
-
 K8S_DEFAULT_NAMESPACE = "py-k8s-job-scheduler"
 JOB_PYTHON_FUNC_ENV_VAR = "JOB_PYTHON_FUNC"
 JOB_PYTHON_EXECUTOR_ENV_VAR = "JOB_PYTHON_EXEC"
@@ -48,11 +46,17 @@ class JobManager:
     DELETE_PROPAGATION_POLICY = "Foreground"
 
     def __init__(
-        self, docker_image, env=None, namespace=K8S_DEFAULT_NAMESPACE, cluster_conf=None
+        self,
+        docker_image,
+        env=None,
+        namespace=K8S_DEFAULT_NAMESPACE,
+        cluster_conf=None,
+        pod_specs=None,
     ):
         self._namespace = namespace
         self._docker_image = docker_image
         self._env = env or {}
+        self._pod_specs = pod_specs or {}
 
         # Init Kubernetes
         self._cluster_conf = cluster_conf or config.load_kube_config()
@@ -266,7 +270,9 @@ class JobManager:
                     backoff_limit=0,
                     template=client.V1JobTemplateSpec(
                         spec=client.V1PodSpec(
-                            restart_policy="Never", containers=[container]
+                            restart_policy="Never",
+                            containers=[container],
+                            **self._pod_specs,
                         ),
                         metadata=client.V1ObjectMeta(name=pod_name, labels=labels),
                     ),
@@ -299,7 +305,9 @@ class JobManager:
                     backoff_limit=0,
                     template=client.V1JobTemplateSpec(
                         spec=client.V1PodSpec(
-                            restart_policy="Never", containers=[container]
+                            restart_policy="Never",
+                            containers=[container],
+                            **self._pod_specs,
                         ),
                         metadata=client.V1ObjectMeta(name=pod_name, labels=labels),
                     ),
@@ -371,7 +379,9 @@ class JobManager:
                         spec=client.V1JobSpec(
                             template=client.V1PodTemplateSpec(
                                 spec=client.V1PodSpec(
-                                    restart_policy="Never", containers=[container]
+                                    restart_policy="Never",
+                                    containers=[container],
+                                    **self._pod_specs,
                                 ),
                             ),
                         ),
