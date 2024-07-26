@@ -58,8 +58,12 @@ class JobManager:
         self._env = env or {}
         self._pod_specs = pod_specs or {}
 
-        # Init Kubernetes
-        self._cluster_conf = cluster_conf or config.load_kube_config()
+        # Init Kubernetes (check if running locally or within pod)
+        self._cluster_conf = (
+            cluster_conf or config.load_incluster_config()
+            if os.environ.get("KUBERNETES_SERVICE_HOST", None)
+            else config.load_kube_config()
+        )
 
         self._core_api = client.CoreV1Api(self._cluster_conf)
         self._batch_api = client.BatchV1Api(self._cluster_conf)
