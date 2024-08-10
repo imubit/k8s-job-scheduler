@@ -101,6 +101,28 @@ def test_instant_python_job(jobman):
     assert jobman.job_logs(job_name).endswith("8\n")
 
 
+def _func_time_parse(a):
+    from pytimeparse import parse
+
+    print(parse(f"{a} day, 14:20:16"))
+    return 0
+
+
+def test_python_job_with_custom_lib(jobman):
+    job_name = jobman.create_instant_python_job(
+        func=_func_time_parse, a=1, pip_packages=["dill", "pytimeparse"]
+    )
+    assert job_name.startswith("kjs-inst-job-")
+    assert jobman.list_jobs() == [job_name]
+
+    time.sleep(15)
+
+    status, _ = jobman.job_status(job_name)
+    assert status == "SUCCEEDED"
+
+    assert jobman.job_logs(job_name).endswith("138016\n")
+
+
 def test_scheduled_job(jobman):
     cron = "*/1 * * * *"
     cmd = "printenv"
