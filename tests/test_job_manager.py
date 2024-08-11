@@ -122,6 +122,8 @@ def test_python_job_with_custom_lib(jobman):
 
     assert jobman.job_logs(job_name).endswith("138016\n")
 
+    assert jobman.job_logs(job_name, tail_lines=1) == "138016"
+
 
 def test_scheduled_job(jobman):
     cron = "*/1 * * * *"

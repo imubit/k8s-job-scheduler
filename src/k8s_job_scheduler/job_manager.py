@@ -174,7 +174,7 @@ class JobManager:
             print(api_response.status)
             return K8S_STATUS_MAP["missing"], None
 
-    def job_logs(self, job_name):
+    def job_logs(self, job_name, tail_lines=None):
         # Get pods
         pods = self.list_pods(job_name=job_name)
 
@@ -207,7 +207,7 @@ class JobManager:
 
         all_logs = {
             pod: self._core_api.read_namespaced_pod_log_with_http_info(
-                pod, self._namespace
+                name=pod, namespace=self._namespace, tail_lines=tail_lines
             )[0].replace("\\n", "<br/>")
             for pod in pods_with_logs
         }
