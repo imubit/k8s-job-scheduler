@@ -98,9 +98,6 @@ class JobManager:
             label_selector=f"job-name={job_name}" if job_name else "",
         )
 
-        # for i in ret.items:
-        #     print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
-        #
         return [i.metadata.name for i in ret.items]
 
     def delete_pod(self, pod_name):
@@ -174,7 +171,7 @@ class JobManager:
             print(api_response.status)
             return K8S_STATUS_MAP["missing"], None
 
-    def job_logs(self, job_name):
+    def job_logs(self, job_name, tail_lines=None):
         # Get pods
         pods = self.list_pods(job_name=job_name)
 
@@ -207,7 +204,7 @@ class JobManager:
 
         all_logs = {
             pod: self._core_api.read_namespaced_pod_log_with_http_info(
-                pod, self._namespace
+                name=pod, namespace=self._namespace, tail_lines=tail_lines
             )[0].replace("\\n", "<br/>")
             for pod in pods_with_logs
         }
@@ -223,7 +220,13 @@ class JobManager:
         )
 
     def create_instant_python_job(
-        self, func, cmd="python", pip_packages=["dill"], *args, **kwargs
+        self,
+        func,
+        cmd="python",
+        pip_packages=["dill"],
+        log_level=logging.INFO,
+        *args,
+        **kwargs,
     ):
         dt_scheduled = datetime.datetime.utcnow()
 
@@ -242,6 +245,7 @@ class JobManager:
             "name": job_name,
             "dt_scheduled": dt_scheduled,
             "host": str(socket.gethostname()),
+            "log_level": log_level,
         }
 
         with open(JOB_PYTHON_EXECUTOR_SCRIPT_PATH, "r") as f:

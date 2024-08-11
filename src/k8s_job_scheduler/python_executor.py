@@ -6,8 +6,7 @@ import zlib
 
 import dill
 
-logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
-
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 logger = logging.getLogger(__name__)
 
 JOB_PYTHON_FUNC_ENV_VAR = "JOB_PYTHON_FUNC"
@@ -26,6 +25,8 @@ def execute():
             zlib.decompress(base64.urlsafe_b64decode(func_def.encode()))
         )
 
+        logger.setLevel(current_job["log_level"])
+
         logger.info(
             f"=== Starting job {current_job['name']}, submitted from {current_job['host']} "
             f"at {current_job['dt_scheduled'].isoformat()} ==="
@@ -33,11 +34,12 @@ def execute():
         logger.debug(f"Job func: {current_job['func'].__name__}")
         logger.debug(f" Args: {current_job['args']}")
         logger.debug(f" Kwargs: {current_job['kwargs']}")
+        logger.debug(f" Log Level: {current_job['log_level']}")
 
         return current_job["func"](*current_job["args"], **current_job["kwargs"])
 
-    except Exception as e:
-        logger.fatal(e)
+    except Exception:
+        logging.exception("Python executor exception")
         raise
 
 
