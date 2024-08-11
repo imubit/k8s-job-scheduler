@@ -98,9 +98,6 @@ class JobManager:
             label_selector=f"job-name={job_name}" if job_name else "",
         )
 
-        # for i in ret.items:
-        #     print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
-        #
         return [i.metadata.name for i in ret.items]
 
     def delete_pod(self, pod_name):
@@ -223,7 +220,13 @@ class JobManager:
         )
 
     def create_instant_python_job(
-        self, func, cmd="python", pip_packages=["dill"], *args, **kwargs
+        self,
+        func,
+        cmd="python",
+        pip_packages=["dill"],
+        log_level=logging.INFO,
+        *args,
+        **kwargs,
     ):
         dt_scheduled = datetime.datetime.utcnow()
 
@@ -242,6 +245,7 @@ class JobManager:
             "name": job_name,
             "dt_scheduled": dt_scheduled,
             "host": str(socket.gethostname()),
+            "log_level": log_level,
         }
 
         with open(JOB_PYTHON_EXECUTOR_SCRIPT_PATH, "r") as f:
