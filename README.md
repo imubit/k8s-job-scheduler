@@ -47,4 +47,4 @@ This example will create a Kubernetes job and run the function `add` with argume
 ### Executing Python functions withing Kubernetes containers
 
 * Docker images should include Python interpreter and all the dependencies required to execute the function.
-* `dill` package is used to send the execution function and it's arguments when Docker container is created. If you wish to use standard Python Docker images or custom images which does not have `dill` package preinstalled, it is possible to specify `dynamic_dill_install=True` when calling `create_instant_python_job`. In this case `dill` will be dynamically installed before running the code.
+* `dill` package is used to send the execution function and it's arguments when Docker container is created. If you wish to use standard Python Docker images or custom images which does not have `dill` package preinstalled, it is possible to specify `pip_packages=['dill']` (enabled by default) when calling `create_instant_python_job`. In this case `dill` will be dynamically installed before running the code.

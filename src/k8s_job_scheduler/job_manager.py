@@ -219,6 +219,22 @@ class JobManager:
             else None
         )
 
+    def _create_config_map(self, name, job_name, data):
+        # Configmap creation
+        secret = client.V1ConfigMap(
+            # api_version="v1",
+            # kind="ConfigMap",
+            metadata=client.V1ObjectMeta(name=name, labels={"job_name": job_name}),
+            data=data,
+            # string_data=''
+        )
+
+        api = self._core_api.create_namespaced_config_map(
+            namespace=self._namespace, body=secret
+        )
+
+        return api
+
     def create_instant_python_job(
         self,
         func,
@@ -237,6 +253,11 @@ class JobManager:
         if "labels" in kwargs:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
+
+        configmap = None
+        if "configmap" in kwargs:
+            configmap = kwargs["configmap"]
+            del kwargs["configmap"]
 
         job_descriptor = {
             "func": types.FunctionType(func.__code__, {}),
@@ -268,6 +289,13 @@ class JobManager:
             "-c",
             f"{pip_install} printenv {JOB_PYTHON_EXECUTOR_ENV_VAR} > executor.py; {cmd} executor.py",
         )
+
+        if configmap:
+            config_map_name = _gen_id("config", cmd, dt_scheduled)
+            api = self._create_config_map(
+                name=config_map_name, job_name=job_name, data=configmap
+            )
+            labels["configmap_name"] = api.metadata.name
 
         api_response = self._batch_api.create_namespaced_job(
             namespace=self._namespace,
@@ -302,6 +330,17 @@ class JobManager:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
 
+        if "configmap" in kwargs:
+            configmap = kwargs["configmap"]
+            del kwargs["configmap"]
+
+            if configmap:
+                config_map_name = _gen_id("config", cmd, dt_scheduled)
+                api = self._create_config_map(
+                    name=config_map_name, job_name=job_name, data=configmap
+                )
+                labels["configmap_name"] = api.metadata.name
+
         container = self._gen_container_specs(cmd, {}, *args, **kwargs)
 
         api_response = self._batch_api.create_namespaced_job(
@@ -325,6 +364,9 @@ class JobManager:
         )
 
         return api_response.metadata.name
+
+    def update_job_config(self, job_name, configmap):
+        pass
 
     def delete_job(self, job_name):
         api_response = self._batch_api.delete_namespaced_job(

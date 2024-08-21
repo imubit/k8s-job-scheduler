@@ -148,6 +148,20 @@ def test_python_job_with_custom_lib(jobman):
     assert jobman.job_logs(job_name, tail_lines=1) == "138016"
 
 
+def _func_add_dynamic(a, b):
+    result = a + b
+    print(result)
+    return 0
+
+
+def test_python_job_with_dynamic_config(jobman):
+    job_name = jobman.create_instant_python_job(
+        func=_func_add, a=3, b=5, configmap={"c": "4"}
+    )
+
+    print(job_name)
+
+
 def test_scheduled_job(jobman):
     cron = "*/1 * * * *"
     cmd = "printenv"
