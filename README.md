@@ -35,7 +35,7 @@ def add(a, b):
     return a + b
 
 manager = JobManager(docker_image="python:3.11.1-slim-bullseye")
-job = manager.create_job(add, 1, 2)
+job = manager.create_instant_python_job(add, 1, 2)
 
 ```
 
@@ -47,4 +47,4 @@ This example will create a Kubernetes job and run the function `add` with argume
 ### Executing Python functions withing Kubernetes containers
 
 * Docker images should include Python interpreter and all the dependencies required to execute the function.
-* `dill` package is used to send the execution function and it's arguments when Docker container is created. If you wish to use standard Python Docker images or custom images which does not have `dill` package preinstalled, it is possible to specify `dynamic_dill_install=True` when calling `create_instant_python_job`. In this case `dill` will be dynamically installed before running the code.
+* `dill` package is used to send the execution function and it's arguments when Docker container is created. `dill` is dynamically installed on job container execution start when job is created with `create_instant_python_job`. You can use `pip_packages` argument to add extra Python packages to be installed, or remove `dill` if you use docker image with preinstalled `dill`.

@@ -238,6 +238,11 @@ class JobManager:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
 
+        volume_mounts = None
+        if "volume_mounts" in kwargs:
+            volume_mounts = kwargs["volume_mounts"]
+            del kwargs["volume_mounts"]
+
         job_descriptor = {
             "func": types.FunctionType(func.__code__, {}),
             "args": args,
@@ -267,6 +272,7 @@ class JobManager:
             sysenv,
             "-c",
             f"{pip_install} printenv {JOB_PYTHON_EXECUTOR_ENV_VAR} > executor.py; {cmd} executor.py",
+            volume_mounts=volume_mounts,
         )
 
         api_response = self._batch_api.create_namespaced_job(
@@ -432,6 +438,7 @@ class JobManager:
             command=[cmd],
             args=args_arr,
             env=env_var,
+            volume_mounts=kwargs.get("volume_mounts", None),
         )
 
         logging.info(
