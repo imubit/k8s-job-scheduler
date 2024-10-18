@@ -45,7 +45,7 @@ def test_success(jobman):
 def test_failed(jobman):
     cmd = "python"
 
-    job_name = jobman.create_instant_cli_job(cmd, "---h")
+    job_name = jobman.create_instant_cli_job(cmd, "---h", backoff_limit=0)
     assert job_name.startswith(f'kjs-inst-job-cli-{cmd.replace("_", "-")}')
     assert jobman.list_jobs() == [job_name]
 
@@ -109,7 +109,7 @@ def _func_divide(a, b):
 
 def test_python_job_exception(jobman):
     job_name = jobman.create_instant_python_job(
-        job_name="failed-job", func=_func_divide, a=3, b=0
+        job_name="failed-job", func=_func_divide, a=3, b=0, backoff_limit=0
     )
     assert job_name == "failed-job"
     assert jobman.list_jobs() == [job_name]
@@ -191,7 +191,9 @@ def _func_delayed_divide(a, b):
 
 
 def test_restart_policy_never(jobman):
-    job_name = jobman.create_instant_python_job(func=_func_delayed_divide, a=4, b=0)
+    job_name = jobman.create_instant_python_job(
+        func=_func_delayed_divide, a=4, b=0, backoff_limit=0
+    )
     assert job_name.startswith("kjs-inst-job-")
     assert jobman.list_jobs() == [job_name]
 

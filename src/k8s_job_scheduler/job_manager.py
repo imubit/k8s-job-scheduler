@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 K8S_DEFAULT_NAMESPACE = "py-k8s-job-scheduler"
+K8S_DEFAULT_BACKOFF_LIMIT = 6
 JOB_PYTHON_FUNC_ENV_VAR = "JOB_PYTHON_FUNC"
 JOB_PYTHON_EXECUTOR_ENV_VAR = "JOB_PYTHON_EXEC"
 JOB_PYTHON_EXECUTOR_SCRIPT_PATH = "/".join([basedir, "python_executor.py"])
@@ -239,7 +240,7 @@ class JobManager:
             del kwargs["labels"]
 
         volume_mounts = kwargs.pop("volume_mounts", None)
-
+        backoff_limit = kwargs.pop("backoff_limit", K8S_DEFAULT_BACKOFF_LIMIT)
         restart_policy = kwargs.pop("restart_policy", "Never")
 
         job_descriptor = {
@@ -281,7 +282,7 @@ class JobManager:
                 kind="Job",
                 metadata=client.V1ObjectMeta(name=job_name, labels=labels),
                 spec=client.V1JobSpec(
-                    backoff_limit=0,
+                    backoff_limit=backoff_limit,
                     template=client.V1JobTemplateSpec(
                         spec=client.V1PodSpec(
                             restart_policy=restart_policy,
@@ -307,6 +308,7 @@ class JobManager:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
 
+        backoff_limit = kwargs.pop("backoff_limit", K8S_DEFAULT_BACKOFF_LIMIT)
         restart_policy = kwargs.pop("restart_policy", "Never")
 
         container = self._gen_container_specs(cmd, {}, *args, **kwargs)
@@ -318,7 +320,7 @@ class JobManager:
                 kind="Job",
                 metadata=client.V1ObjectMeta(name=job_name, labels=labels),
                 spec=client.V1JobSpec(
-                    backoff_limit=0,
+                    backoff_limit=backoff_limit,
                     template=client.V1JobTemplateSpec(
                         spec=client.V1PodSpec(
                             restart_policy=restart_policy,
