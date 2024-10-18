@@ -230,7 +230,7 @@ class JobManager:
     ):
         dt_scheduled = datetime.datetime.utcnow()
 
-        job_name = _gen_id("inst-job", cmd, dt_scheduled)
+        job_name = kwargs.pop("job_name", _gen_id("inst-job", cmd, dt_scheduled))
         pod_name = _gen_id("pod", cmd, dt_scheduled)
         labels = {"job_name": job_name, "type": "instant_func", "cmd": cmd}
 
@@ -238,11 +238,9 @@ class JobManager:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
 
-        volume_mounts = kwargs.get("volume_mounts", None)
-        kwargs.pop("volume_mounts", None)
+        volume_mounts = kwargs.pop("volume_mounts", None)
 
-        restart_policy = kwargs.get("restart_policy", "Never")
-        kwargs.pop("restart_policy", None)
+        restart_policy = kwargs.pop("restart_policy", "Never")
 
         job_descriptor = {
             "func": types.FunctionType(func.__code__, {}),
@@ -301,7 +299,7 @@ class JobManager:
     def create_instant_cli_job(self, cmd, *args, **kwargs):
         dt_scheduled = datetime.datetime.utcnow()
 
-        job_name = _gen_id("inst-job-cli", cmd, dt_scheduled)
+        job_name = kwargs.pop("job_name", _gen_id("inst-job-cli", cmd, dt_scheduled))
         pod_name = _gen_id("pod", cmd, dt_scheduled)
         labels = {"job_name": job_name, "type": "instant_cli", "cmd": cmd}
 
@@ -309,8 +307,7 @@ class JobManager:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
 
-        restart_policy = kwargs.get("restart_policy", "Never")
-        kwargs.pop("restart_policy", None)
+        restart_policy = kwargs.pop("restart_policy", "Never")
 
         container = self._gen_container_specs(cmd, {}, *args, **kwargs)
 
@@ -375,17 +372,15 @@ class JobManager:
     def create_scheduled_cli_job(self, schedule, cmd, *args, **kwargs):
         dt_scheduled = datetime.datetime.utcnow()
 
-        job_name = _gen_id("cron-job", cmd, dt_scheduled)
+        job_name = kwargs.pop("job_name", _gen_id("cron-job", cmd, dt_scheduled))
         pod_name = _gen_id("pod", cmd, dt_scheduled)
-
         labels = {"job_name": job_name, "type": "scheduled_cli", "cmd": cmd}
 
         if "labels" in kwargs:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
 
-        restart_policy = kwargs.get("restart_policy", "Never")
-        kwargs.pop("restart_policy", None)
+        restart_policy = kwargs.pop("restart_policy", "Never")
 
         container = self._gen_container_specs(cmd, {}, *args, **kwargs)
 

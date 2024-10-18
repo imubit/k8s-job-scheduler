@@ -108,8 +108,10 @@ def _func_divide(a, b):
 
 
 def test_python_job_exception(jobman):
-    job_name = jobman.create_instant_python_job(func=_func_divide, a=3, b=0)
-    assert job_name.startswith("kjs-inst-job-")
+    job_name = jobman.create_instant_python_job(
+        job_name="failed-job", func=_func_divide, a=3, b=0
+    )
+    assert job_name == "failed-job"
     assert jobman.list_jobs() == [job_name]
 
     time.sleep(15)
