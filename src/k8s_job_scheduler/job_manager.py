@@ -19,6 +19,7 @@ log = logging.getLogger(__name__)
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 K8S_DEFAULT_NAMESPACE = "py-k8s-job-scheduler"
+K8S_DEFAULT_BACKOFF_LIMIT = 6
 JOB_PYTHON_FUNC_ENV_VAR = "JOB_PYTHON_FUNC"
 JOB_PYTHON_EXECUTOR_ENV_VAR = "JOB_PYTHON_EXEC"
 JOB_PYTHON_EXECUTOR_SCRIPT_PATH = "/".join([basedir, "python_executor.py"])
@@ -230,7 +231,7 @@ class JobManager:
     ):
         dt_scheduled = datetime.datetime.utcnow()
 
-        job_name = _gen_id("inst-job", cmd, dt_scheduled)
+        job_name = kwargs.pop("job_name", _gen_id("inst-job", cmd, dt_scheduled))
         pod_name = _gen_id("pod", cmd, dt_scheduled)
         labels = {"job_name": job_name, "type": "instant_func", "cmd": cmd}
 
@@ -238,11 +239,9 @@ class JobManager:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
 
-        volume_mounts = kwargs.get("volume_mounts", None)
-        kwargs.pop("volume_mounts", None)
-
-        restart_policy = kwargs.get("restart_policy", "Never")
-        kwargs.pop("restart_policy", None)
+        volume_mounts = kwargs.pop("volume_mounts", None)
+        backoff_limit = kwargs.pop("backoff_limit", K8S_DEFAULT_BACKOFF_LIMIT)
+        restart_policy = kwargs.pop("restart_policy", "Never")
 
         job_descriptor = {
             "func": types.FunctionType(func.__code__, {}),
@@ -283,7 +282,7 @@ class JobManager:
                 kind="Job",
                 metadata=client.V1ObjectMeta(name=job_name, labels=labels),
                 spec=client.V1JobSpec(
-                    backoff_limit=0,
+                    backoff_limit=backoff_limit,
                     template=client.V1JobTemplateSpec(
                         spec=client.V1PodSpec(
                             restart_policy=restart_policy,
@@ -301,7 +300,7 @@ class JobManager:
     def create_instant_cli_job(self, cmd, *args, **kwargs):
         dt_scheduled = datetime.datetime.utcnow()
 
-        job_name = _gen_id("inst-job-cli", cmd, dt_scheduled)
+        job_name = kwargs.pop("job_name", _gen_id("inst-job-cli", cmd, dt_scheduled))
         pod_name = _gen_id("pod", cmd, dt_scheduled)
         labels = {"job_name": job_name, "type": "instant_cli", "cmd": cmd}
 
@@ -309,8 +308,8 @@ class JobManager:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
 
-        restart_policy = kwargs.get("restart_policy", "Never")
-        kwargs.pop("restart_policy", None)
+        backoff_limit = kwargs.pop("backoff_limit", K8S_DEFAULT_BACKOFF_LIMIT)
+        restart_policy = kwargs.pop("restart_policy", "Never")
 
         container = self._gen_container_specs(cmd, {}, *args, **kwargs)
 
@@ -321,7 +320,7 @@ class JobManager:
                 kind="Job",
                 metadata=client.V1ObjectMeta(name=job_name, labels=labels),
                 spec=client.V1JobSpec(
-                    backoff_limit=0,
+                    backoff_limit=backoff_limit,
                     template=client.V1JobTemplateSpec(
                         spec=client.V1PodSpec(
                             restart_policy=restart_policy,
@@ -375,17 +374,15 @@ class JobManager:
     def create_scheduled_cli_job(self, schedule, cmd, *args, **kwargs):
         dt_scheduled = datetime.datetime.utcnow()
 
-        job_name = _gen_id("cron-job", cmd, dt_scheduled)
+        job_name = kwargs.pop("job_name", _gen_id("cron-job", cmd, dt_scheduled))
         pod_name = _gen_id("pod", cmd, dt_scheduled)
-
         labels = {"job_name": job_name, "type": "scheduled_cli", "cmd": cmd}
 
         if "labels" in kwargs:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
 
-        restart_policy = kwargs.get("restart_policy", "Never")
-        kwargs.pop("restart_policy", None)
+        restart_policy = kwargs.pop("restart_policy", "Never")
 
         container = self._gen_container_specs(cmd, {}, *args, **kwargs)
 
