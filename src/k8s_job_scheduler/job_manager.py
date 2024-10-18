@@ -238,10 +238,11 @@ class JobManager:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
 
-        volume_mounts = None
-        if "volume_mounts" in kwargs:
-            volume_mounts = kwargs["volume_mounts"]
-            del kwargs["volume_mounts"]
+        volume_mounts = kwargs.get("volume_mounts", None)
+        kwargs.pop("volume_mounts", None)
+
+        restart_policy = kwargs.get("restart_policy", "Never")
+        kwargs.pop("restart_policy", None)
 
         job_descriptor = {
             "func": types.FunctionType(func.__code__, {}),
@@ -285,7 +286,7 @@ class JobManager:
                     backoff_limit=0,
                     template=client.V1JobTemplateSpec(
                         spec=client.V1PodSpec(
-                            restart_policy="Never",
+                            restart_policy=restart_policy,
                             containers=[container],
                             **self._pod_specs,
                         ),
@@ -308,6 +309,9 @@ class JobManager:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
 
+        restart_policy = kwargs.get("restart_policy", "Never")
+        kwargs.pop("restart_policy", None)
+
         container = self._gen_container_specs(cmd, {}, *args, **kwargs)
 
         api_response = self._batch_api.create_namespaced_job(
@@ -320,7 +324,7 @@ class JobManager:
                     backoff_limit=0,
                     template=client.V1JobTemplateSpec(
                         spec=client.V1PodSpec(
-                            restart_policy="Never",
+                            restart_policy=restart_policy,
                             containers=[container],
                             **self._pod_specs,
                         ),
@@ -380,6 +384,9 @@ class JobManager:
             labels.update(kwargs["labels"])
             del kwargs["labels"]
 
+        restart_policy = kwargs.get("restart_policy", "Never")
+        kwargs.pop("restart_policy", None)
+
         container = self._gen_container_specs(cmd, {}, *args, **kwargs)
 
         api_response = self._batch_api.create_namespaced_cron_job(
@@ -394,7 +401,7 @@ class JobManager:
                         spec=client.V1JobSpec(
                             template=client.V1PodTemplateSpec(
                                 spec=client.V1PodSpec(
-                                    restart_policy="Never",
+                                    restart_policy=restart_policy,
                                     containers=[container],
                                     **self._pod_specs,
                                 ),
